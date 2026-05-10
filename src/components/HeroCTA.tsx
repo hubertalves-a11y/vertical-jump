@@ -12,19 +12,19 @@ export default function HeroCTA() {
       type="button"
       className="absolute z-[6] flex items-center border-none cursor-pointer"
       style={{
-        bottom: 46,
+        bottom: 36,
         left: '50%',
         transform: 'translateX(-50%)',
-        gap: 10,
-        padding: '8px 8px 8px 28px',
+        gap: 9,
+        padding: '7px 7px 7px 22px',
         background: '#fff',
         color: '#0d0905',
         fontFamily: 'var(--font-hanken), system-ui, sans-serif',
         fontWeight: 600,
-        fontSize: 16,
+        fontSize: 14,
         letterSpacing: '-0.005em',
         borderRadius: 999,
-        boxShadow: '0 14px 38px rgba(0,0,0,0.45)',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.40)',
         whiteSpace: 'nowrap',
       }}
     >
@@ -33,15 +33,15 @@ export default function HeroCTA() {
         aria-hidden="true"
         className="inline-flex items-center justify-center rounded-full text-white flex-shrink-0"
         style={{
-          width: 38,
-          height: 38,
+          width: 32,
+          height: 32,
           background: '#2D6BFF',
-          boxShadow: '0 4px 10px rgba(45,107,255,0.45)',
+          boxShadow: '0 4px 10px rgba(45,107,255,0.40)',
         }}
       >
         <svg
-          width="16"
-          height="16"
+          width="13"
+          height="13"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

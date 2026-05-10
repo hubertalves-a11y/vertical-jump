@@ -4,27 +4,25 @@ import { motion } from 'framer-motion'
 
 export default function ScrollIndicator() {
   return (
+    // Some em mobile — o CTA já comunica a ação
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.7, delay: 0.9 }}
-      className="absolute z-[4]"
-      style={{ right: 56, bottom: 56, width: 460, maxWidth: '42vw' }}
+      className="hidden md:block absolute z-[4]"
+      style={{ right: 28, bottom: 44, width: 320, maxWidth: '36vw' }}
     >
-      {/* Horizontal rule */}
-      <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.28)', marginBottom: 18 }} />
-
+      <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.22)', marginBottom: 14 }} />
       <div
         className="flex items-center justify-between"
-        style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 700 }}
+        style={{ fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 700 }}
       >
-        {/* Left: animated chevron + label */}
-        <div className="flex items-center text-white" style={{ gap: 14 }}>
-          <div className="relative overflow-hidden" style={{ width: 18, height: 18 }} aria-hidden="true">
+        <div className="flex items-center text-white" style={{ gap: 10 }}>
+          <div className="relative overflow-hidden" style={{ width: 16, height: 16 }} aria-hidden="true">
             <svg
               className="block animate-bob"
-              width="14"
-              height="14"
+              width="12"
+              height="12"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -38,9 +36,7 @@ export default function ScrollIndicator() {
           </div>
           <span>Role para saltar</span>
         </div>
-
-        {/* Right: subtitle */}
-        <span style={{ color: 'rgba(255,255,255,0.82)', letterSpacing: '0.18em' }}>
+        <span style={{ color: 'rgba(255,255,255,0.65)', letterSpacing: '0.16em' }}>
           para iniciar a queda
         </span>
       </div>
