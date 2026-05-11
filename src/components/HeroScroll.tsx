@@ -9,7 +9,7 @@ import HeroSubblock from './HeroSubblock'
 import HeroCTA from './HeroCTA'
 import ScrollIndicator from './ScrollIndicator'
 
-const FRAME_COUNT = 40
+const FRAME_COUNT = 119
 
 function getFramePath(index: number): string {
   const num = String(index + 1).padStart(3, '0')
@@ -122,7 +122,7 @@ export default function HeroScroll() {
   }, [loaded, images, drawFrame, resizeCanvas])
 
   return (
-    <section ref={sectionRef} className="relative" style={{ height: '400vh' }}>
+    <section ref={sectionRef} className="relative" style={{ height: '500vh' }}>
       {/* Sticky viewport — the canvas + UI layer that sticks during scroll */}
       <div className="sticky top-0 h-screen w-full overflow-hidden" style={{ background: '#05080F' }}>
 
