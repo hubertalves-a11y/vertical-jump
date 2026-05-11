@@ -197,7 +197,7 @@ export default function VemSaltar() {
 
   const [screen, setScreen] = useState<Screen>('desktop')
   const [activeVideo, setActiveVideo] = useState<string | null>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(2) // center card default
   const modalVideoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -221,7 +221,10 @@ export default function VemSaltar() {
       const top = section.offsetTop
       const scrollRange = section.offsetHeight - window.innerHeight
       if (scrollRange <= 0) return
-      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / scrollRange))
+      const raw = (window.scrollY - top) / scrollRange
+      // Before section is in the scroll zone: keep the center-card default
+      if (raw < 0) return
+      const progress = Math.min(1, raw)
       setActiveIndex(Math.min(4, Math.floor(progress * 5)))
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -308,12 +311,14 @@ export default function VemSaltar() {
             <div style={{
               position: 'relative',
               height: containerH,
-              maxWidth: isMobile ? '100%' : 1000,
+              // On desktop/tablet: overflow visible so rotated edge cards aren't clipped.
+              // On mobile: clip prevents a sliver of horizontal scroll.
+              maxWidth: isMobile ? '100%' : 1100,
               margin: '0 auto',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              overflow: 'clip',
+              overflow: isMobile ? 'clip' : 'visible',
             }}>
               {cfgs.map((cfg, i) => (
                 <VideoCard
