@@ -10,25 +10,31 @@ import HeroCTA from './HeroCTA'
 import ScrollIndicator from './ScrollIndicator'
 
 const FRAME_COUNT = 119
-
-function getFramePath(index: number): string {
-  const num = String(index + 1).padStart(3, '0')
-  return `/sequence-1/ezgif-frame-${num}.jpg`
-}
+const PRIORITY_FRAMES = 20
 
 export default function HeroScroll() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   const currentFrameRef = useRef(0)
-  // Refs to avoid stale closures in scroll callback
   const imagesRef = useRef<HTMLImageElement[]>([])
   const loadedRef = useRef(false)
+
+  // Detect mobile once at mount to pick the correct frame folder (960px vs 1920px)
+  const folderRef = useRef(
+    typeof window !== 'undefined' && window.innerWidth < 768
+      ? 'sequence-1-mobile'
+      : 'sequence-1'
+  )
+  const getFramePath = useCallback((index: number) => {
+    const num = String(index + 1).padStart(3, '0')
+    return `/${folderRef.current}/ezgif-frame-${num}.jpg`
+  }, [])
 
   const { lenis } = useLenis()
   const scrollProgress = useMotionValue(0)
   const overlayOpacity = useTransform(scrollProgress, [0, 0.15, 0.4], [1, 1, 0])
 
-  const { images, loaded, progress: loadProgress } = useImagePreloader(FRAME_COUNT, getFramePath)
+  const { images, loaded, progress: loadProgress } = useImagePreloader(FRAME_COUNT, getFramePath, PRIORITY_FRAMES)
 
   // Keep refs in sync with state
   useEffect(() => {
