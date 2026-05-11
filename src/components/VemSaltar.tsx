@@ -3,39 +3,40 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 
-// Fan transforms por breakpoint
+// Extra scroll height on mobile so the fan stays sticky while user cycles cards
+const MOBILE_SCROLL_ROOM = 350
+
 const CONFIGS = {
   desktop: [
-    { rotate: -24, x: -320, y: -20,  hoverY: -40,  z: 1, delay: 0.10 },
-    { rotate: -12, x: -160, y: -40,  hoverY: -60,  z: 2, delay: 0.20 },
-    { rotate:   0, x:    0, y: -48,  hoverY: -68,  z: 3, delay: 0.30 },
-    { rotate:  12, x:  160, y: -40,  hoverY: -60,  z: 2, delay: 0.40 },
-    { rotate:  24, x:  320, y: -20,  hoverY: -40,  z: 1, delay: 0.50 },
+    { rotate: -24, x: -340, y: -22, hoverY: -46, z: 1, delay: 0.10 },
+    { rotate: -12, x: -170, y: -44, hoverY: -68, z: 2, delay: 0.20 },
+    { rotate:   0, x:    0, y: -54, hoverY: -78, z: 3, delay: 0.30 },
+    { rotate:  12, x:  170, y: -44, hoverY: -68, z: 2, delay: 0.40 },
+    { rotate:  24, x:  340, y: -22, hoverY: -46, z: 1, delay: 0.50 },
   ],
   tablet: [
-    { rotate: -22, x: -260, y: -10,  hoverY: -30,  z: 1, delay: 0.10 },
-    { rotate: -11, x: -130, y: -30,  hoverY: -50,  z: 2, delay: 0.20 },
-    { rotate:   0, x:    0, y: -36,  hoverY: -56,  z: 3, delay: 0.30 },
-    { rotate:  11, x:  130, y: -30,  hoverY: -50,  z: 2, delay: 0.40 },
-    { rotate:  22, x:  260, y: -10,  hoverY: -30,  z: 1, delay: 0.50 },
+    { rotate: -22, x: -270, y: -10, hoverY: -34, z: 1, delay: 0.10 },
+    { rotate: -11, x: -135, y: -32, hoverY: -56, z: 2, delay: 0.20 },
+    { rotate:   0, x:    0, y: -40, hoverY: -64, z: 3, delay: 0.30 },
+    { rotate:  11, x:  135, y: -32, hoverY: -56, z: 2, delay: 0.40 },
+    { rotate:  22, x:  270, y: -10, hoverY: -34, z: 1, delay: 0.50 },
   ],
+  // Mobile uses same fan as desktop but compressed — scroll drives active card
   mobile: [
-    { rotate: -12, x: 0, y: -160, hoverY: -168, z: 1, delay: 0.10 },
-    { rotate:  -6, x: 0, y:  -80, hoverY:  -88, z: 2, delay: 0.20 },
-    { rotate:   0, x: 0, y:    0, hoverY:   -8, z: 3, delay: 0.30 },
-    { rotate:   6, x: 0, y:   80, hoverY:   72, z: 2, delay: 0.40 },
-    { rotate:  12, x: 0, y:  160, hoverY:  152, z: 1, delay: 0.50 },
+    { rotate: -18, x: -72, y: -6,  hoverY: -22, z: 1, delay: 0.10 },
+    { rotate:  -9, x: -36, y: -18, hoverY: -34, z: 2, delay: 0.20 },
+    { rotate:   0, x:   0, y: -22, hoverY: -38, z: 3, delay: 0.30 },
+    { rotate:   9, x:  36, y: -18, hoverY: -34, z: 2, delay: 0.40 },
+    { rotate:  18, x:  72, y: -6,  hoverY: -22, z: 1, delay: 0.50 },
   ],
 }
 
-// Dimensões dos cards por breakpoint
 const DIMS = {
-  desktop: { w: 240, h: 320, containerH: 400 },
-  tablet:  { w: 200, h: 280, containerH: 380 },
-  mobile:  { w: 160, h: 240, containerH: 500 },
+  desktop: { w: 268, h: 360, containerH: 480 },
+  tablet:  { w: 212, h: 296, containerH: 400 },
+  mobile:  { w: 132, h: 188, containerH: 340 },
 }
 
-// Substituir pelas src reais quando tiver os vídeos em /public/videos/
 const VIDEO_SRCS = [
   '/videos/social-1.mp4',
   '/videos/social-2.mp4',
@@ -44,7 +45,6 @@ const VIDEO_SRCS = [
   '/videos/social-5.mp4',
 ]
 
-// Placeholders visuais enquanto os vídeos não existirem
 const CARD_BG = [
   'linear-gradient(160deg, #05080F 0%, #1a2f6e 100%)',
   'linear-gradient(160deg, #071828 0%, #2D6BFF 100%)',
@@ -58,7 +58,7 @@ type Screen = 'desktop' | 'tablet' | 'mobile'
 
 // ── Card individual ────────────────────────────────────────────────
 function VideoCard({
-  index, cfg, w, h, inView, onOpen,
+  index, cfg, w, h, inView, onOpen, isActive, isMobile,
 }: {
   index: number
   cfg: Cfg
@@ -66,20 +66,36 @@ function VideoCard({
   h: number
   inView: boolean
   onOpen: (src: string) => void
+  isActive: boolean
+  isMobile: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // On mobile: scroll-driven active state; on desktop/tablet: mouse hover
+  const elevated = isMobile ? isActive : hovered
+
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+    if (elevated) {
+      vid.play().catch(() => {})
+    } else {
+      vid.pause()
+      vid.currentTime = 0
+    }
+  }, [elevated])
+
   const baseTransform = `rotate(${cfg.rotate}deg) translateX(${cfg.x}px) translateY(${cfg.y}px)`
-  const hoverTransform = `rotate(${cfg.rotate}deg) translateX(${cfg.x}px) translateY(${cfg.hoverY}px) scale(1.05)`
+  const elevTransform = `rotate(${cfg.rotate}deg) translateX(${cfg.x}px) translateY(${cfg.hoverY}px) scale(1.05)`
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={inView ? { opacity: 1 } : { opacity: 0 }}
       transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1], delay: cfg.delay }}
-      onMouseEnter={() => { setHovered(true);  videoRef.current?.play().catch(() => {}) }}
-      onMouseLeave={() => { setHovered(false); if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0 } }}
+      onMouseEnter={() => { if (!isMobile) setHovered(true) }}
+      onMouseLeave={() => { if (!isMobile) setHovered(false) }}
       onClick={() => onOpen(VIDEO_SRCS[index])}
       style={{
         position: 'absolute',
@@ -88,14 +104,17 @@ function VideoCard({
         borderRadius: 20,
         overflow: 'hidden',
         cursor: 'pointer',
-        zIndex: hovered ? 10 : cfg.z,
+        zIndex: elevated ? 10 : cfg.z,
         background: CARD_BG[index],
-        transform: hovered ? hoverTransform : baseTransform,
-        boxShadow: hovered ? '0 24px 64px rgba(0,0,0,0.28)' : '0 8px 32px rgba(0,0,0,0.18)',
+        transform: elevated ? elevTransform : baseTransform,
+        boxShadow: elevated
+          ? '0 28px 72px rgba(0,0,0,0.32)'
+          : '0 8px 32px rgba(0,0,0,0.18)',
         transition: 'transform 0.6s cubic-bezier(0.23,1,0.32,1), box-shadow 0.6s ease',
+        outline: isMobile && isActive ? '2px solid rgba(45,107,255,0.55)' : 'none',
+        outlineOffset: 4,
       }}
     >
-      {/* Vídeo — colocar arquivos em /public/videos/ */}
       <video
         ref={videoRef}
         muted
@@ -106,7 +125,7 @@ function VideoCard({
           height: '100%',
           objectFit: 'cover',
           display: 'block',
-          transform: hovered ? 'scale(1.1)' : 'scale(1)',
+          transform: elevated ? 'scale(1.1)' : 'scale(1)',
           transition: 'transform 0.6s cubic-bezier(0.23,1,0.32,1)',
         }}
       >
@@ -117,8 +136,8 @@ function VideoCard({
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.45) 100%)',
-        opacity: hovered ? 1 : 0,
+        background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.48) 100%)',
+        opacity: elevated ? 1 : 0,
         transition: 'opacity 0.4s ease',
         zIndex: 1,
         pointerEvents: 'none',
@@ -129,21 +148,21 @@ function VideoCard({
         position: 'absolute',
         top: '50%',
         left: '50%',
-        transform: `translate(-50%, -50%) scale(${hovered ? 1 : 0.82})`,
-        width: 64,
-        height: 64,
+        transform: `translate(-50%, -50%) scale(${elevated ? 1 : 0.78})`,
+        width: isMobile ? 48 : 64,
+        height: isMobile ? 48 : 64,
         background: 'rgba(255,255,255,0.96)',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: hovered ? 1 : 0,
+        opacity: elevated ? 1 : 0,
         transition: 'all 0.35s cubic-bezier(0.23,1,0.32,1)',
         zIndex: 2,
         pointerEvents: 'none',
         boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
       }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#111">
+        <svg width={isMobile ? 13 : 18} height={isMobile ? 13 : 18} viewBox="0 0 24 24" fill="#111">
           <polygon points="6,3 20,12 6,21" />
         </svg>
       </div>
@@ -151,17 +170,17 @@ function VideoCard({
       {/* "Ver vídeo" label */}
       <p style={{
         position: 'absolute',
-        bottom: 14,
+        bottom: 12,
         left: 0,
         right: 0,
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.75)',
-        fontSize: 10,
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: isMobile ? 8 : 10,
         fontWeight: 700,
         letterSpacing: '0.14em',
         textTransform: 'uppercase',
         zIndex: 2,
-        opacity: hovered ? 1 : 0,
+        opacity: elevated ? 1 : 0,
         transition: 'opacity 0.3s ease',
         fontFamily: 'var(--font-hanken), system-ui, sans-serif',
       }}>
@@ -178,9 +197,9 @@ export default function VemSaltar() {
 
   const [screen, setScreen] = useState<Screen>('desktop')
   const [activeVideo, setActiveVideo] = useState<string | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
   const modalVideoRef = useRef<HTMLVideoElement>(null)
 
-  // Detecta breakpoint no cliente
   useEffect(() => {
     const update = () => {
       const w = window.innerWidth
@@ -191,7 +210,24 @@ export default function VemSaltar() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  // Fecha modal com Escape
+  // Scroll-driven card activation (mobile only)
+  // Section has extra paddingBottom; as the user scrolls through it, activeIndex changes.
+  // Effective scroll range = section.offsetHeight - window.innerHeight ≈ MOBILE_SCROLL_ROOM
+  useEffect(() => {
+    if (screen !== 'mobile') return
+    const onScroll = () => {
+      const section = sectionRef.current
+      if (!section) return
+      const top = section.offsetTop
+      const scrollRange = section.offsetHeight - window.innerHeight
+      if (scrollRange <= 0) return
+      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / scrollRange))
+      setActiveIndex(Math.min(4, Math.floor(progress * 5)))
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [screen])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal() }
     window.addEventListener('keydown', onKey)
@@ -210,71 +246,142 @@ export default function VemSaltar() {
 
   const cfgs = CONFIGS[screen]
   const { w, h, containerH } = DIMS[screen]
-  const sectionPadding = screen === 'mobile' ? '80px 24px 120px' : '120px 40px 180px'
-  const headerMargin = screen === 'mobile' ? 64 : 100
+  const isMobile = screen === 'mobile'
 
   return (
     <>
       <section
         ref={sectionRef}
-        style={{ background: '#f5f5f5', padding: sectionPadding, position: 'relative' }}
+        style={{
+          background: '#f5f5f5',
+          position: 'relative',
+          // On mobile: extra height at bottom creates scroll room for card cycling
+          paddingBottom: isMobile ? MOBILE_SCROLL_ROOM : 0,
+        }}
       >
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        {/* Sticky wrapper on mobile: stays visible while user scrolls through padding */}
+        <div style={{
+          position: isMobile ? 'sticky' : 'static',
+          top: 0,
+          background: '#f5f5f5',
+          padding: isMobile ? '72px 24px 60px' : '120px 40px 180px',
+          // On mobile, fill the viewport so the section always looks full-screen
+          minHeight: isMobile ? '100svh' : 'auto',
+          display: isMobile ? 'flex' : 'block',
+          flexDirection: isMobile ? 'column' : undefined,
+          justifyContent: isMobile ? 'center' : undefined,
+        }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
 
-          {/* Cabeçalho */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            style={{ textAlign: 'center', marginBottom: headerMargin }}
-          >
-            <h2 style={{
-              fontSize: 'clamp(40px, 5.5vw, 72px)',
-              fontWeight: 700,
-              letterSpacing: '-0.022em',
-              lineHeight: 1,
-              marginBottom: 8,
-              color: '#05080F',
-              fontFamily: 'var(--font-hanken), system-ui, sans-serif',
-            }}>
-              VEM SALTAR COM A
-            </h2>
-            <p style={{
-              fontSize: 'clamp(18px, 2.8vw, 32px)',
-              fontWeight: 400,
-              fontStyle: 'italic',
-              letterSpacing: '0.02em',
-              color: '#05080F',
-              fontFamily: 'var(--font-hanken), system-ui, sans-serif',
-              opacity: 0.7,
-            }}>
-              VERTICAL JUMP
-            </p>
-          </motion.div>
+            {/* Cabeçalho */}
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+              style={{ textAlign: 'center', marginBottom: isMobile ? 56 : 100 }}
+            >
+              <h2 style={{
+                fontSize: isMobile ? 'clamp(30px, 8vw, 40px)' : 'clamp(40px, 5.5vw, 72px)',
+                fontWeight: 700,
+                letterSpacing: '-0.022em',
+                lineHeight: 1,
+                marginBottom: 8,
+                color: '#05080F',
+                fontFamily: 'var(--font-hanken), system-ui, sans-serif',
+              }}>
+                VEM SALTAR COM A
+              </h2>
+              <p style={{
+                fontSize: isMobile ? 'clamp(13px, 3.5vw, 17px)' : 'clamp(18px, 2.8vw, 32px)',
+                fontWeight: 400,
+                fontStyle: 'italic',
+                letterSpacing: '0.02em',
+                color: '#05080F',
+                fontFamily: 'var(--font-hanken), system-ui, sans-serif',
+                opacity: 0.65,
+              }}>
+                VERTICAL JUMP
+              </p>
+            </motion.div>
 
-          {/* Fan de cards */}
-          <div style={{
-            position: 'relative',
-            height: containerH,
-            maxWidth: 1000,
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {cfgs.map((cfg, i) => (
-              <VideoCard
-                key={i}
-                index={i}
-                cfg={cfg}
-                w={w}
-                h={h}
-                inView={inView}
-                onOpen={openModal}
-              />
-            ))}
+            {/* Fan de cards */}
+            <div style={{
+              position: 'relative',
+              height: containerH,
+              maxWidth: isMobile ? '100%' : 1000,
+              margin: '0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'clip',
+            }}>
+              {cfgs.map((cfg, i) => (
+                <VideoCard
+                  key={i}
+                  index={i}
+                  cfg={cfg}
+                  w={w}
+                  h={h}
+                  inView={inView}
+                  onOpen={openModal}
+                  isActive={isMobile ? activeIndex === i : false}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+
+            {/* Dots indicator (mobile only) */}
+            {isMobile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={inView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.5, delay: 0.9 }}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 36,
+                }}
+              >
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div
+                    key={i}
+                    style={{
+                      width: activeIndex === i ? 22 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      background: activeIndex === i ? '#2D6BFF' : 'rgba(5,8,15,0.18)',
+                      transition: 'all 0.4s cubic-bezier(0.23,1,0.32,1)',
+                    }}
+                  />
+                ))}
+              </motion.div>
+            )}
+
+            {/* Hint de scroll (mobile) — desaparece depois do primeiro card */}
+            {isMobile && activeIndex === 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={inView ? { opacity: 1 } : {}}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5, delay: 1.1 }}
+                style={{
+                  textAlign: 'center',
+                  marginTop: 16,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: '0.18em',
+                  color: 'rgba(5,8,15,0.35)',
+                  textTransform: 'uppercase',
+                  fontFamily: 'var(--font-hanken), system-ui, sans-serif',
+                }}
+              >
+                Role para explorar
+              </motion.p>
+            )}
+
           </div>
-
         </div>
       </section>
 
@@ -299,7 +406,6 @@ export default function VemSaltar() {
               justifyContent: 'center',
             }}
           >
-            {/* Fechar */}
             <button
               onClick={closeModal}
               aria-label="Fechar"
@@ -320,7 +426,6 @@ export default function VemSaltar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                lineHeight: 1,
                 zIndex: 10,
                 transition: 'background 0.2s',
               }}
@@ -328,7 +433,6 @@ export default function VemSaltar() {
               ×
             </button>
 
-            {/* Conteúdo */}
             <motion.div
               initial={{ scale: 0.88, y: 36, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
