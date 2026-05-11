@@ -210,25 +210,27 @@ export default function VemSaltar() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  // Scroll-driven card activation (mobile only)
-  // Section has extra paddingBottom; as the user scrolls through it, activeIndex changes.
-  // Effective scroll range = section.offsetHeight - window.innerHeight ≈ MOBILE_SCROLL_ROOM
+  // Scroll-driven card activation (mobile only).
+  // Cards cycle in center-outward order so raw=0 (section entering view) maps to card 2,
+  // matching the default — no visual jump on arrival.
+  // Order: center → right → far-right → left → far-left
+  const CARD_ORDER = [2, 3, 4, 1, 0]
+
   useEffect(() => {
     if (screen !== 'mobile') return
     const onScroll = () => {
       const section = sectionRef.current
       if (!section) return
-      const top = section.offsetTop
       const scrollRange = section.offsetHeight - window.innerHeight
       if (scrollRange <= 0) return
-      const raw = (window.scrollY - top) / scrollRange
-      // Before section is in the scroll zone: keep the center-card default
+      const raw = (window.scrollY - section.offsetTop) / scrollRange
       if (raw < 0) return
-      const progress = Math.min(1, raw)
-      setActiveIndex(Math.min(4, Math.floor(progress * 5)))
+      const step = Math.min(4, Math.floor(Math.min(1, raw) * 5))
+      setActiveIndex(CARD_ORDER[step])
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen])
 
   useEffect(() => {
@@ -349,14 +351,14 @@ export default function VemSaltar() {
                   marginTop: 36,
                 }}
               >
-                {[0, 1, 2, 3, 4].map(i => (
+                {[2, 3, 4, 1, 0].map((cardIdx) => (
                   <div
-                    key={i}
+                    key={cardIdx}
                     style={{
-                      width: activeIndex === i ? 22 : 6,
+                      width: activeIndex === cardIdx ? 22 : 6,
                       height: 6,
                       borderRadius: 3,
-                      background: activeIndex === i ? '#2D6BFF' : 'rgba(5,8,15,0.18)',
+                      background: activeIndex === cardIdx ? '#2D6BFF' : 'rgba(5,8,15,0.18)',
                       transition: 'all 0.4s cubic-bezier(0.23,1,0.32,1)',
                     }}
                   />
@@ -364,8 +366,8 @@ export default function VemSaltar() {
               </motion.div>
             )}
 
-            {/* Hint de scroll (mobile) — desaparece depois do primeiro card */}
-            {isMobile && activeIndex === 0 && (
+            {/* Hint de scroll (mobile) — visível no estado inicial (card central) */}
+            {isMobile && activeIndex === 2 && (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={inView ? { opacity: 1 } : {}}
